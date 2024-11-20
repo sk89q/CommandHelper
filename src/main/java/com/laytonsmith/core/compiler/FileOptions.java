@@ -50,6 +50,8 @@ public final class FileOptions {
 	private final String license;
 	@Option("Disables undefined proc errors in the typechecker")
 	private final Boolean allDynamicProcs;
+	@Option("Do not close terminal when an exception occurs in a cmdline mode script")
+	private final Boolean cmdlinePauseOnException;
 
 	private final Map<String, String> rawOptions;
 	//TODO: Make this non-public once this is all finished.
@@ -68,7 +70,8 @@ public final class FileOptions {
 		compilerOptions = parseEnumSet(getDefault(parsedOptions, "compileroptions", ""), CompilerOption.class);
 		copyright = getDefault(parsedOptions, "copyright", "").trim();
 		license = getDefault(parsedOptions, "license", "").trim();
-		allDynamicProcs = parseBoolean(getDefault(parsedOptions, "allDynamicProcs", null));
+		allDynamicProcs = parseBoolean(getDefault(parsedOptions, "alldynamicprocs", "false"));
+		cmdlinePauseOnException = parseBoolean(getDefault(parsedOptions, "cmdlinepauseonexception", "false"));
 	}
 
 	private String getDefault(Map<String, String> map, String key, String defaultIfNone) {
@@ -220,6 +223,14 @@ public final class FileOptions {
 	 */
 	public boolean isAllDynamicProcs() {
 		return allDynamicProcs;
+	}
+
+	/**
+	 * Get whether the terminal should be held open when an exception occurs in a cmdline script.
+	 * @return
+	 */
+	public boolean isCmdlinePauseOnException() {
+		return cmdlinePauseOnException;
 	}
 
 	/**

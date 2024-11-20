@@ -83,11 +83,13 @@ import com.laytonsmith.core.events.drivers.CmdlineEvents;
 import com.laytonsmith.core.exceptions.CRE.CREFormatException;
 import com.laytonsmith.core.exceptions.CRE.CREIOException;
 import com.laytonsmith.core.exceptions.CRE.CREThrowable;
+import com.laytonsmith.core.exceptions.AbstractCompileException;
 import com.laytonsmith.core.exceptions.CancelCommandException;
 import com.laytonsmith.core.exceptions.ConfigCompileException;
 import com.laytonsmith.core.exceptions.ConfigCompileGroupException;
 import com.laytonsmith.core.exceptions.ConfigRuntimeException;
 import com.laytonsmith.core.functions.Cmdline;
+import com.laytonsmith.core.functions.Cmdline.prompt_char;
 import com.laytonsmith.core.functions.Echoes;
 import com.laytonsmith.core.functions.ExampleScript;
 import com.laytonsmith.core.functions.Function;
@@ -787,7 +789,29 @@ public final class Interpreter {
 		final ParseTree tree;
 		try {
 			TokenStream stream = MethodScriptCompiler.lex(script, env, fromFile, true);
-			tree = MethodScriptCompiler.compile(stream, env, env.getEnvClasses(), staticAnalysis);
+			try {
+				tree = MethodScriptCompiler.compile(stream, env, env.getEnvClasses(), staticAnalysis);
+			} catch (AbstractCompileException e) {
+
+				// Pause on script exception in cmdline mode if set in the file options.
+				if(env.getEnv(GlobalEnv.class).inCmdlineMode()
+						&& System.console() != null && stream.getFileOptions().isCmdlinePauseOnException()) {
+					compile.stop();
+					if(e instanceof ConfigCompileException ex) {
+						ConfigRuntimeException.HandleUncaughtException(ex, null, null);
+					} else if(e instanceof ConfigCompileGroupException ex) {
+						ConfigRuntimeException.HandleUncaughtException(ex, null);
+					} else {
+						throw e;
+					}
+					StreamUtils.GetSystemOut().println(TermColors.reset());
+					prompt_char.promptChar("Press any key to continue...");
+					return;
+				}
+
+				// Pass exception to caller.
+				throw e;
+			}
 			staticAnalysis = new StaticAnalysis(staticAnalysis.getEndScope(), true); // Continue analysis in end scope.
 		} finally {
 			compile.stop();
@@ -862,9 +886,20 @@ public final class Interpreter {
 							}
 						} catch (ConfigRuntimeException e) {
 							ConfigRuntimeException.HandleUncaughtException(e, env);
-							//No need for the full stack trace
+
+							// No need for the full stack trace.
 							if(System.console() == null) {
 								System.exit(1);
+							}
+
+							// Pause on script exception in cmdline mode if set in the file options.
+							if(env.getEnv(GlobalEnv.class).inCmdlineMode()
+									&& tree.getFileOptions().isCmdlinePauseOnException()) {
+								try {
+									prompt_char.promptChar("Press any key to continue...");
+								} catch (IOException e1) {
+									// Ignore.
+								}
 							}
 						} catch (NoClassDefFoundError e) {
 							StreamUtils.GetSystemErr().println(RED + Static.getNoClassDefFoundErrorMessage(e) + reset());

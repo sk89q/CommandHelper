@@ -1,3 +1,88 @@
+==3.3.5==
+
+CommandHelper 3.3.5 supports Minecraft 1.16.5-1.19.3
+
+The largest feature of this release is that support for Java 16 was added, and support for previous versions were
+dropped. Additionally, while the exposed feature set is somewhat limited, various backend changes have been
+committed, which improves the reliability and performance of the system, and allows for additional planned changes in
+the future, particularly around static analysis, user objects, and other language features.
+
+=== New Feature Overview ===
+
+* Various deprecated functions have been removed. spawn_mob (use spawn_entity), tame_mob (use set_mob_owner), \
+enchant_inv (use enchant_item), enchant_rm_inv (use remove_item_enchant), get_enchant_inv (use get_item_enchants), \
+can_enchant_target (use can_enchant_item), get_block_at (use get_block), set_block_at (use set_block)
+* Add support for 1.17-1.19 Minecraft Mobs
+* Additional data in entity_spec
+* MethodScript source is now hardened against bidi attacks. https://trojansource.codes/trojan-source.pdf
+* Various improvements to the LangServ, which increases the functionality of the Visual Studio Code IDE. \
+Things such as code outline and integration with proc docs is now supported. The idea of a "workspace" was added, \
+which allows for all code to be handled as a whole project, rather than a bunch of individual files. For instance, \
+the ability to go to a proc declaration from a reference was added, and smart comments added to a proc now show \
+up when hovering over a proc reference. Requires static analysis to be enabled.
+* RCON support was added
+* Declarative prefilters were added. This has little visible effect to end users, other than to say that prefilters \
+should be more performant now, and additional error checking can be done to ensure correct prefilter usage, including \
+incorrect values, and unexpected additional (and unused) values. The framework is added now, and more events will \
+be onboarded onto the system in the future. Some of the changes require Static Analysis to be enabled (disabled by
+default).
+* Initial framework support is added for function signatures. This allows native functions to specify return types and \
+expected parameters, which allows for better compile time error detection, if static analysis is turned on. For now, \
+most of the functions are not onboarded yet, and anyways, typechecking is disabled by default, but this will be \
+enabled in the near future. If you wish to go ahead and try out your code under typechecking, please enable it \
+in the static-analysis-config.ini file in the prefs folder. This will be enabled by default in the VSCode IDE plugin \
+in the next version, and once deemed stable, will be enabled by default, and eventually be unable to be turned off \
+in normal circumstances.
+* CommandHelper reloading (that is, on startup, and also with the /recompile command) has been substantially altered. \
+Now, compilation and execution are fully separated into two distinct steps, which means that code changes that cause \
+a compile error will not stop the old, previously working code from running. Only successful recompiles will allow \
+for the new code to begin to be executed. Preferences (files in prefs/) are now reloaded as part of a recompile. \
+The halt-on-failure preference now shuts down the server if, on initial startup, the code will not compile, or other \
+configuration is wrong, such that the code can not come up completely. This is useful if, for instance, some server \
+security is provided through CommandHelper, so that if something changes and the code no longer will run, it is better \
+for the server to shut down than run unprotected. Various other backend improvements were made in this area.
+* Extension load time was reduced.
+* <code>return</code> can now be used as a keyword, such as <code>return expression();</code> or <code>return;</code>
+* <code>continue</code> and <code>break</code> can also be used as keywords, in the same way.
+* Full support for statements has been added. In either strict and non-strict mode, adding a semicolon creates a \
+statement. For now, they are not required in any mode, though they will cause errors in strict mode if they are \
+used in places they shouldn't. To keep backwards compatibility, in non-strict mode, when a statement is used where \
+it shouldn't be, the value will be "pulled up" and not cause any errors. For instance, for the code \
+<code>if(@a;){}</code>, this will cause an error in strict mode, but work like <code>if(@a){}</code> in non-strict \
+mode. Eventually, this will cause a warning in non-strict mode, but additional work is needed before that can be \
+implemented. In both modes, when statements are used, properly, this may increase runtime performance, because it \
+skips the automatic sconcat feature, which is required for small aliases, but is inefficient in all other cases.
+* First class proc references are added. Assuming a proc named _test is defined, <code>proc _test</code> will return \
+a reference to it, which can be stored in a variable, or otherwise passed around as an argument.
+* Closures, iclosures, and proc references now extend the new Callable interface.
+* All callables can be executed with parenthetical notation, no matter how they are stored. Previously this \
+only worked with top level variables, such as <code>@c()</code> but now it works with any other format, including \
+direct returns from other functions and array references, for instance, assuming func returns a Callable, \
+<code>func()()</code> will execute it.
+* Tab completion is now enhanced for aliases defined with the @command syntax, if they also provide type information \
+in @param tags. For instance, if the alias is </code>/test $enum</code> and <code>@param $enum WorldEnvironment</code> \
+is provided, then the $enum value will automatically provide autocomplete with the values from the WorldEnvironment enum.
+* Support for variadic arguments is added. Callables may now be defined with a variadic type in the last parameter,
+which will match all overflow parameters, for instance <code>proc _test(string... @values)</code> can now be called \
+such as <code>_test('a', 'b', 'c')</code>, and @values will be an array of strings <code>array('a', 'b', 'c')</code> \
+within the proc.
+* Additional methods of handling dynamic includes and static analysis have been added. Forward proc declarations, \
+@{DynamicProc} annotations, and additional file options. See the page on [[Procedures]] for more details.
+* Annotations have been added. For now, only @{DynamicProc} exists, though this will be expanded on in the future.
+* As always, hundreds of additional performance fixes and bug fixes and other minor things.
+
+Very early support for LLVM is being introduced. This is not generally usable for basically anything yet, but you
+are encouraged to take a look and provide feedback if you are a command line user.
+
+=== Function API Additions ===
+
+MethodScript additions: {{function|array_fill}}, {{function|fixed_array}}
+
+Minecraft additions: {{function|get_banner_patterns}}, {{function|get_entity_freezing}},
+{{function|get_hanging_direction}}, {{function|get_world_autosave}}, {{function|is_sign_text_glowing}},
+{{function|psend_block_damage}}, {{function|set_banner_patterns}}, {{function|set_entity_freezing}},
+{{function|set_hanging_direction}}, {{function|set_sign_text_glowing}}, {{function|set_world_autosave}}
+
 ==3.3.4==
 CommandHelper 3.3.4 supports Minecraft 1.13.2 - 1.16.5. All extensions must be updated when upgrading from previous versions.
 

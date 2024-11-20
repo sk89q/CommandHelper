@@ -1,0 +1,51 @@
+
+This is a guide for developers when doing a version bump of MethodScript.
+
+== General Procedure ==
+
+The general procedure for development is to develop on the "current version", say version 2.0.0, and then release it as
+version 2.0.0-final. This is slightly different than many systems, where "version 2.0.0" is the release version, and
+dev builds are "2.0.0-SNAPSHOT", but for infrequently released projects, this seems to be a better approach.
+
+As of version 3.3.4, the release tags have been standardized on ''commandhelper-<version>-final''.
+
+== Step 1: Prepare for new version ==
+
+This is the largest step in the process. The [[Changelog]] page must first be updated with the highlights of the
+previous development cycle. This can be somewhat easily determined by reading through the git log, though this will
+generally only reveal major points, which is fine. These bullet points go in under the new feature overview.
+
+The command to read the relevant git logs is <%PRE|git log <previous tag>..HEAD --reverse%>. This will provide them
+in chronological order, starting from the first commit after the tag. Read through all of them, extract the highlights,
+and fill out the bullet points.
+
+Next, we need to gather a list of new functions and events and other elements.
+This can be done in MethodScript with this code snippet:
+
+<%CODE|@version = '<insert version number>'; @api = json_decode(shell(array('mscript', '--', 'json-api'))); foreach(@top: @data in @api) { if(@top == 'extensions') { continue(); }; msg(@top); foreach(@n: @e in @data) { if(@e['since'] == @version) { msg('   ' . @n); } } }; die();%>
+
+Additionally, make any final changes to the documentation that you wish to be under the current version, as it will only
+upload under the site on that version one last time.
+
+Commit all these changes, and push them out.
+
+== Step 2: Do a version bump ==
+
+This is the step that actually bumps up the version.
+
+<%PRE|mvn clean release:clean release:prepare%>
+
+Follow the prompts, then git push when complete.
+
+== Step 3: Pin the build (requires Azure Portal access) ==
+
+After the build for this final commit is complete, download the jar. Login to the Azure portal (portal.azure.com) and
+access the methodscriptbuilds storage account blade. Access the Storage Browser, Blob Containers, and
+commandhelperpinned container. Add directory (following the format of the others) then upload the jar, naming it
+commandhelper-<version>-final.jar.
+
+== Step 4: Create new version ==
+
+Open the pom file, and change the version there to the new version. Go to MSVersion and add a new enum (the LATEST value
+is determined automatically). Make a commit and push. On this build, AggressiveDeprecations might start kicking in
+immediately, so ensure you're aware of what might change there.
